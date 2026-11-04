@@ -99,6 +99,13 @@ def telegram_chat_id(estado):
 
 
 def enviar_telegram(estado, texto, foto: Path | None = None):
+    try:
+        _enviar_telegram(estado, texto, foto)
+    except BaseException as e:  # nunca romper la vigilancia por un fallo de Telegram
+        print(f"AVISO Telegram: no se pudo enviar ({e})")
+
+
+def _enviar_telegram(estado, texto, foto: Path | None = None):
     token = os.environ["TELEGRAM_TOKEN"]
     chat = telegram_chat_id(estado)
     if foto and foto.exists():
@@ -113,7 +120,28 @@ def enviar_telegram(estado, texto, foto: Path | None = None):
 
 # ------------------------------------------------------------------ navegador
 def aceptar_minimas_cookies(page):
-    """Rechaza cookies no esenciales si aparece el banner."""
+    """Rechaza cookies no esenciales si aparece el banner; si no hay opción, lo quita de la vista."""
+    try:  # banner de mahalopoke.es: Gestionar -> rechazar/guardar
+        g = page.get_by_role("button", name=re.compile(r"^gestionar$", re.I)).first
+        if g.is_visible(timeout=800):
+            g.click()
+            page.wait_for_timeout(1000)
+            for t in [r"rechazar", r"guardar", r"confirmar"]:
+                try:
+                    b = page.get_by_role("button", name=re.compile(t, re.I)).first
+                    if b.is_visible(timeout=800):
+                        b.click()
+                        page.wait_for_timeout(800)
+                        break
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    try:  # si sigue algún aviso de cookies tapando la página, se oculta
+        page.evaluate("""() => document.querySelectorAll('[class*=cookie i],[id*=cookie i],[class*=cky],[id*=usercentrics i]')
+              .forEach(e => { if (getComputedStyle(e).position === 'fixed') e.style.display = 'none'; })""")
+    except Exception:
+        pass
     for txt in ["Denegar", "Rechazar", "Rechazar todo", "Rechazar todas", "Solo necesarias",
                 "Reject all", "Decline", "Aceptar solo necesarias"]:
         try:
@@ -176,8 +204,40 @@ ABRIR_DIRECCION = {
 }
 
 
+def poner_direccion_glovo(page, direccion):
+    """Glovo abre un cuadro '¿Dónde hay que hacer la entrega?' con el campo 'Buscar dirección'."""
+    campo = page.get_by_placeholder(re.compile(r"buscar direcci", re.I)).first
+    try:
+        campo.wait_for(state="visible", timeout=6000)
+    except Exception:
+        try:
+            clic_texto(page, r"^sevilla$", 3000)
+            campo.wait_for(state="visible", timeout=5000)
+        except Exception:
+            return False
+    campo.click()
+    campo.press_sequentially(direccion, delay=60)
+    page.wait_for_timeout(3000)
+    try:
+        page.get_by_text(re.compile(r"austria", re.I)).last.click(timeout=5000)
+    except Exception:
+        campo.press("ArrowDown")
+        campo.press("Enter")
+    page.wait_for_timeout(3000)
+    for boton in [r"^confirmar", r"^guardar", r"^continuar", r"^aceptar"]:
+        try:
+            page.get_by_role("button", name=re.compile(boton, re.I)).first.click(timeout=1500)
+            page.wait_for_timeout(2000)
+        except Exception:
+            pass
+    page.wait_for_timeout(3000)
+    return True
+
+
 def poner_direccion(page, plataforma, direccion):
     """Intenta fijar la dirección de entrega como haría un cliente. No falla si no puede."""
+    if plataforma == "glovo":
+        return poner_direccion_glovo(page, direccion)
     for patron in ABRIR_DIRECCION.get(plataforma, []):
         try:
             clic_texto(page, patron, 2500)
@@ -221,6 +281,9 @@ def leer_texto(marco):
 
 def clasificar(texto, tienda):
     t = normalizar(texto)
+    if any(x in t for x in ["verificacion de seguridad", "you have been blocked", "unable to access",
+                            "verify you are human", "oh, no!", "there's a problem"]):
+        return "bloqueado", "la plataforma ha bloqueado la comprobación automática"
     if len(t) < 200:
         return "desconocido", "la página no ha cargado"
     if tienda["plataforma"] == "app_propia":
@@ -246,7 +309,9 @@ def clasificar(texto, tienda):
 
 
 def comprobar(browser, tienda, direccion, intento):
-    ctx = browser.new_context(locale="es-ES", timezone_id="Europe/Madrid",
+    ctx = browser.new_context(user_agent=("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                                          "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"),
+                              locale="es-ES", timezone_id="Europe/Madrid",
                               viewport={"width": 1366, "height": 900},
                               geolocation={"latitude": 37.358, "longitude": -5.986},
                               permissions=["geolocation"])
@@ -296,12 +361,12 @@ def main():
     CAPTURAS.mkdir(exist_ok=True)
     resumen = []
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(args=["--disable-blink-features=AutomationControlled"])
         for tienda in config["tiendas"]:
             clave = f"{tienda['plataforma']}|{tienda['nombre']}"
             est, motivo, foto = comprobar(browser, tienda, config["direccion"], 1)
-            if est != "visible":  # segunda comprobación para evitar falsas alarmas
-                time.sleep(45)
+            if est == "no_visible":  # segunda comprobación para evitar falsas alarmas
+                time.sleep(20)
                 est, motivo, foto = comprobar(browser, tienda, config["direccion"], 2)
 
             previo = estado["tiendas"].get(clave, {"estado": "visible", "fallos": 0})
@@ -311,7 +376,7 @@ def main():
             print(f"[{hora}] {plataforma} - {tienda['nombre']}: {est} ({motivo})")
             resumen.append(f"• {plataforma} – {tienda['nombre']}: {est} ({motivo})")
 
-            if est == "desconocido":
+            if est in ("desconocido", "bloqueado"):
                 previo["fallos"] = previo.get("fallos", 0) + 1
                 if previo["fallos"] == FALLOS_ANTES_DE_AVISAR:
                     enviar_telegram(estado, f"❓ {tienda['nombre']} en {plataforma}: no he podido comprobarlo "
