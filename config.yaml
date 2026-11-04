@@ -1,0 +1,51 @@
+# ============================================================
+#  CONFIGURACIÓN DEL VIGILANTE - Mahalo Poke Sevilla Bermejales
+#  Este es el ÚNICO archivo que normalmente tendrás que tocar.
+# ============================================================
+
+# Horario en el que se vigila (hora de España). Fuera de estas
+# franjas no se comprueba nada y no llegan avisos.
+horario:
+  dias: [lunes, martes, miercoles, jueves, viernes, sabado, domingo]
+  franjas:
+    - "12:00-16:00"
+    - "19:30-23:00"
+
+# Dirección desde la que se comprueba (dentro del radio de reparto)
+direccion: "Calle Austria 11, 41012 Sevilla"
+
+# Tiendas a vigilar. Para añadir una, copia un bloque y cambia
+# nombre, plataforma y url. Plataformas: app_propia, glovo, uber, justeat
+tiendas:
+  - nombre: "Mahalo Poke"
+    plataforma: app_propia
+    url: "https://mahalopoke.es/poke-a-domicilio/#/delivery"
+    local: "Bermejales"   # texto con el que se elige el local en la web
+
+  - nombre: "Mahalo Poke"
+    plataforma: glovo
+    url: "https://glovoapp.com/es/es/sevilla/stores/mahalo-poke-sevilla"
+
+  - nombre: "Poke Shop"
+    plataforma: glovo
+    url: "https://glovoapp.com/es/es/sevilla/stores/pokeshop-sevilla"
+
+  - nombre: "Keblack"
+    plataforma: glovo
+    url: "https://glovoapp.com/es/es/sevilla/stores/keblack-sevilla"
+
+  - nombre: "Açaí Shop"
+    plataforma: glovo
+    url: "https://glovoapp.com/es/es/sevilla/stores/acai-shop-sevilla"
+
+  - nombre: "Poke Shop"
+    plataforma: uber
+    url: "https://www.ubereats.com/es/store/poke-shop-sevilla-bermejales/hIULrBt-WICXnAs-aQ4woQ?diningMode=DELIVERY"
+
+  - nombre: "Poke Shop"
+    plataforma: justeat
+    url: "https://www.just-eat.es/restaurants-poke-shop-bermejales-sevilla/menu"
+
+  - nombre: "Açaí Shop"
+    plataforma: justeat
+    url: "https://www.just-eat.es/restaurants-acai-shop-bermejales-sevilla/menu"
