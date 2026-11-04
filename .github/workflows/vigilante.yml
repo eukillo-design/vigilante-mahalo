@@ -1,0 +1,74 @@
+name: Vigilante Mahalo Bermejales
+
+on:
+  schedule:
+    - cron: "*/10 10-22 * * *"
+  workflow_dispatch:
+    inputs:
+      prueba:
+        description: "Prueba: comprobar ya y mandar resumen por Telegram"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vigilante
+  cancel-in-progress: false
+
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias básicas
+        run: pip install -r requirements.txt
+
+      - name: ¿Estamos en horario?
+        id: horario
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || python vigilante.py --en-horario; then
+            echo "seguir=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "seguir=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar navegador
+        if: steps.horario.outputs.seguir == 'si'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Comprobar tiendas
+        if: steps.horario.outputs.seguir == 'si'
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.prueba }}" = "true" ]; then
+            python vigilante.py --forzar --prueba
+          else
+            python vigilante.py
+          fi
+
+      - name: Guardar capturas (para revisar)
+        if: always() && steps.horario.outputs.seguir == 'si'
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas
+          path: capturas/
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Guardar estado
+        if: steps.horario.outputs.seguir == 'si'
+        run: |
+          git config user.name "vigilante"
+          git config user.email "vigilante@users.noreply.github.com"
+          git add estado.json
+          git diff --cached --quiet || (git commit -m "estado $(date -u +%H:%M)" && git push)
