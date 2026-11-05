@@ -2,43 +2,43 @@
   "tiendas": {
     "app_propia|Mahalo Poke": {
       "estado": "visible",
-      "fallos": 5,
-      "ultima": "2026-11-04T22:59+01:00"
+      "fallos": 6,
+      "ultima": "2026-11-05T12:45+01:00"
     },
     "glovo|Mahalo Poke": {
       "estado": "visible",
-      "fallos": 5,
-      "ultima": "2026-11-04T22:59+01:00"
+      "fallos": 6,
+      "ultima": "2026-11-05T12:45+01:00"
     },
     "glovo|Poke Shop": {
       "estado": "visible",
-      "fallos": 5,
-      "ultima": "2026-11-04T22:59+01:00"
+      "fallos": 6,
+      "ultima": "2026-11-05T12:45+01:00"
     },
     "glovo|Keblack": {
       "estado": "visible",
-      "fallos": 5,
-      "ultima": "2026-11-04T22:59+01:00"
+      "fallos": 6,
+      "ultima": "2026-11-05T12:45+01:00"
     },
     "glovo|Açaí Shop": {
       "estado": "visible",
-      "fallos": 5,
-      "ultima": "2026-11-04T22:59+01:00"
+      "fallos": 6,
+      "ultima": "2026-11-05T12:45+01:00"
     },
     "uber|Poke Shop": {
       "estado": "visible",
-      "fallos": 5,
-      "ultima": "2026-11-04T22:59+01:00"
+      "fallos": 6,
+      "ultima": "2026-11-05T12:45+01:00"
     },
     "justeat|Poke Shop": {
       "estado": "visible",
-      "fallos": 5,
-      "ultima": "2026-11-04T22:59+01:00"
+      "fallos": 6,
+      "ultima": "2026-11-05T12:45+01:00"
     },
     "justeat|Açaí Shop": {
       "estado": "visible",
-      "fallos": 5,
-      "ultima": "2026-11-04T22:59+01:00"
+      "fallos": 6,
+      "ultima": "2026-11-05T12:45+01:00"
     }
   },
   "telegram_chat_id": 5789168280
